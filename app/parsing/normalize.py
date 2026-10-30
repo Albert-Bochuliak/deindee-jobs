@@ -94,9 +94,20 @@ def clean_text(text: str | None) -> str:
 
 
 def strip_html(text: str) -> str:
-    """Remove tags (kept as spaces so words don't glue), then clean_text."""
+    """Remove tags (kept as spaces so words don't glue), then clean_text.
+
+    Sources can entity-encode their markup (arbeitnow sends
+    `&lt;p&gt;&lt;span data-contrast=…&gt;`) — unescape BEFORE stripping
+    or the markup turns into literal "<p>" text that survives. The
+    bounded loop covers double-escaped payloads.
+    """
     if not text:
         return ""
+    for _ in range(3):
+        unescaped = html.unescape(text)
+        if unescaped == text:
+            break
+        text = unescaped
     no_tags = TAG_RE.sub(" ", text)
     return clean_text(no_tags)
 

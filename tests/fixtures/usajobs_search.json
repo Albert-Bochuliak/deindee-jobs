@@ -1,0 +1,80 @@
+{
+  "SearchResult": {
+    "SearchResultCount": 2,
+    "SearchResultCountAll": 2,
+    "SearchResultItems": [
+      {
+        "MatchedObjectId": 8123456001,
+        "MatchedObjectDescriptor": {
+          "PositionID": "25-ABC-123",
+          "PositionTitle": "IT Specialist (APPSW)",
+          "PositionURI": "https://www.usajobs.gov/job/8123456001",
+          "ApplyURI": [
+            "https://www.usajobs.gov/Application/ApplyNow/8123456001"
+          ],
+          "PositionLocation": [
+            {
+              "LocationName": "Washington, District of Columbia",
+              "CountryCode": "United States",
+              "CountrySubDivisionCode": "District of Columbia",
+              "CityName": "Washington"
+            }
+          ],
+          "PositionLocationDisplay": "Washington, District of Columbia",
+          "OrganizationName": "Department of Example Affairs",
+          "DepartmentName": "Example Agency",
+          "JobGrade": [{ "Code": "GS" }],
+          "JobCategory": [{ "Name": "Information Technology", "Code": "2210" }],
+          "PositionRemuneration": [
+            {
+              "MinimumRange": "95000",
+              "MaximumRange": "140000",
+              "RateIntervalCode": "Per Year",
+              "Description": "Per Year"
+            }
+          ],
+          "PositionSchedule": [{ "Name": "Full-time", "Code": "1" }],
+          "PublicationStartDate": "2026-10-20T00:00:00.0000",
+          "QualificationSummary": "Experience with WordPress CMS and Drupal theming.",
+          "UserArea": {
+            "Details": {
+              "JobSummary": "Develop and maintain Python web applications.",
+              "MajorDuties": [
+                "Build accessible UI components.",
+                "Maintain CMS plugins."
+              ],
+              "RemoteIndicator": true
+            }
+          }
+        }
+      },
+      {
+        "MatchedObjectId": 8123456002,
+        "MatchedObjectDescriptor": {
+          "PositionID": "25-DEF-456",
+          "PositionTitle": "Data Scientist",
+          "PositionURI": "https://www.usajobs.gov/job/8123456002",
+          "ApplyURI": [],
+          "PositionLocation": [
+            {
+              "LocationName": "Denver, Colorado",
+              "CountryCode": "United States",
+              "CityName": "Denver"
+            }
+          ],
+          "PositionLocationDisplay": "Denver, Colorado",
+          "OrganizationName": "Office of Data",
+          "PositionRemuneration": [
+            {
+              "MinimumRange": "80",
+              "MaximumRange": "95",
+              "RateIntervalCode": "Per Hour"
+            }
+          ],
+          "PublicationStartDate": "2026-10-15T00:00:00.0000",
+          "UserArea": { "Details": { "RemoteIndicator": false } }
+        }
+      }
+    ]
+  }
+}

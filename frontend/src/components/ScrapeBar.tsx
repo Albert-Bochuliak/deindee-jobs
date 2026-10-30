@@ -1,4 +1,4 @@
-import { Loader2, MapPin, Play } from "lucide-react";
+import { MapPin, Play, Square } from "lucide-react";
 import { CheckboxDropdown } from "./ui/CheckboxDropdown";
 import { ClearableInput } from "./ui/ClearableInput";
 import type { useScrape } from "../hooks/useScrape";
@@ -11,19 +11,19 @@ const REGION_PRESETS = [
 interface Props {
   scrape: ReturnType<typeof useScrape>;
   remoteOnly: boolean;
-  /** push keywords into the jobs search box when a run starts */
-  applyQuery: (q: string) => void;
   /** side-effect on every location toggle (e.g. sync the countries filter) */
   onLocations?: (locs: string[]) => void;
   reload: (opts?: { silent?: boolean }) => Promise<void>;
+  /** wipe the visible list when a fresh run starts */
+  clear: () => void;
 }
 
 /** Header scrape controls: keywords input, location multi-select, run button. */
-export function ScrapeBar({ scrape, remoteOnly, applyQuery, onLocations, reload }: Props) {
-  const { keywords, setKeywords, locations, setLocations, scraping, start } =
+export function ScrapeBar({ scrape, remoteOnly, onLocations, reload, clear }: Props) {
+  const { keywords, setKeywords, locations, setLocations, scraping, start, stop } =
     scrape;
   const run = () => {
-    if (!scraping) start({ remoteOnly, applyQuery, reload });
+    if (!scraping) start({ remoteOnly, reload, clear });
   };
   return (
     <>
@@ -48,16 +48,24 @@ export function ScrapeBar({ scrape, remoteOnly, applyQuery, onLocations, reload 
         }}
       />
       <button
-        onClick={run}
-        disabled={scraping}
-        className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
+        onClick={scraping ? stop : run}
+        className={
+          scraping
+            ? "inline-flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium hover:bg-red-600"
+            : "inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500"
+        }
       >
         {scraping ? (
-          <Loader2 size={16} className="animate-spin" />
+          <>
+            <Square size={14} />
+            Зупинити
+          </>
         ) : (
-          <Play size={16} />
+          <>
+            <Play size={16} />
+            Запустити скрапінг
+          </>
         )}
-        Запустити скрапінг
       </button>
     </>
   );

@@ -30,17 +30,24 @@ class HttpFetcher:
             follow_redirects=True,
         )
 
-    def get(self, url: str, params: dict | None = None, source_name: str = "?") -> httpx.Response:
+    def get(
+        self,
+        url: str,
+        params: dict | None = None,
+        source_name: str = "?",
+        headers: dict | None = None,
+    ) -> httpx.Response:
         """GET with rate limit + exponential-backoff retries.
 
         403/429 (anti-bot / rate limited) are retried; other 4xx/5xx raise
         immediately via raise_for_status. SourceError after MAX_RETRIES.
+        Request-level `headers` merge over the client defaults (USAJOBS auth).
         """
         self._respect_rate_limit()
         last_error: Exception | None = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                response = self._client.get(url, params=params)
+                response = self._client.get(url, params=params, headers=headers)
                 if response.status_code in (403, 429):
                     self._backoff(attempt, source_name, url, response.status_code)
                     last_error = SourceError(

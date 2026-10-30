@@ -35,6 +35,58 @@ NON_COUNTRIES = {
 }
 
 
+# US states + territories and CA provinces — a city-level location like
+# "Quantico, Virginia" resolves to "united states" via its last segment.
+US_REGIONS = {
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+    "maine", "maryland", "massachusetts", "michigan", "minnesota",
+    "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new hampshire", "new jersey", "new mexico", "new york",
+    "north carolina", "north dakota", "ohio", "oklahoma", "oregon",
+    "pennsylvania", "rhode island", "south carolina", "south dakota",
+    "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+    "west virginia", "wisconsin", "wyoming", "district of columbia",
+    "puerto rico", "guam",
+}
+
+CA_REGIONS = {
+    "ontario", "quebec", "british columbia", "alberta", "manitoba",
+    "saskatchewan", "nova scotia", "new brunswick",
+    "newfoundland and labrador", "prince edward island",
+    "northwest territories", "nunavut", "yukon",
+}
+
+# wanted-side aliases — "USA" should hit "united states"
+COUNTRY_ALIASES = {
+    "usa": "united states", "us": "united states", "u.s.": "united states",
+    "u.s.a.": "united states", "america": "united states",
+    "united states of america": "united states",
+}
+
+
+def region_country(loc: str) -> str | None:
+    """Resolve a city-level location's last segment to its country (US/CA)."""
+    region = loc.rsplit(",", 1)[-1].strip().lower()
+    if region in US_REGIONS:
+        return "united states"
+    if region in CA_REGIONS:
+        return "canada"
+    return None
+
+
+def country_regions(country: str) -> frozenset[str]:
+    """Reverse of region_country — the regions a country filter must also
+    match ('united states' -> all US states)."""
+    key = COUNTRY_ALIASES.get(country.strip().lower(), country.strip().lower())
+    if key == "united states":
+        return frozenset(US_REGIONS)
+    if key == "canada":
+        return frozenset(CA_REGIONS)
+    return frozenset()
+
+
 def extract_countries(locations: Iterable[str]) -> list[str]:
     """Distinct countries from raw location strings: last comma-segment
     when present, or the whole string if it's a known country name.

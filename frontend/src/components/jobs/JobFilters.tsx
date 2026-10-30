@@ -7,6 +7,8 @@ interface Props {
   filters: JobFilters;
   sources: string[];
   countries: string[];
+  /** per-source job counts (stats.by_source) — shown next to each option */
+  sourceCounts?: Record<string, number>;
   onChange: (next: JobFilters) => void;
 }
 
@@ -68,7 +70,7 @@ const CURRENCY_OPTIONS = [
 const INPUT =
   "rounded-lg border border-slate-700 bg-slate-800 px-2 pr-2 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-sky-600";
 
-export function JobFiltersBar({ filters, sources, countries, onChange }: Props) {
+export function JobFiltersBar({ filters, sources, countries, sourceCounts, onChange }: Props) {
   const set = (patch: Partial<JobFilters>) => onChange({ ...filters, ...patch });
   const srcLabel =
     filters.sources.length === 0
@@ -104,9 +106,27 @@ export function JobFiltersBar({ filters, sources, countries, onChange }: Props) 
       <CheckboxDropdown
         className="w-44"
         label={srcLabel}
-        options={sources}
+        options={sources
+          .filter(
+            // hide dead sources (0 jobs) — but keep selected ones visible
+            // so the user can still uncheck them
+            (s) =>
+              !sourceCounts ||
+              (sourceCounts[s] ?? 0) > 0 ||
+              filters.sources.includes(s)
+          )
+          .map((s) => ({
+            value: s,
+            label: (
+              <>
+                <span className="flex-1">{s}</span>
+                <span className="text-slate-500">{sourceCounts?.[s] ?? 0}</span>
+              </>
+            ),
+          }))}
         selected={filters.sources}
         onChange={(next) => set({ sources: next })}
+        columns={3}
       />
 
       <CheckboxDropdown
@@ -115,7 +135,7 @@ export function JobFiltersBar({ filters, sources, countries, onChange }: Props) 
         options={countries}
         selected={filters.countries}
         onChange={(next) => set({ countries: next })}
-        scroll
+        columns={3}
       />
 
       <select

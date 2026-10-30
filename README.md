@@ -1,14 +1,19 @@
 # deindee-jobs
 
+> Project knowledge base (Obsidian vault): **`docs/`** — start at
+> `docs/Home.md`. Read `docs/Pitfalls.md` before editing related code.
+
 DeIndee Jobs Scraper — full-stack job aggregator. A Python backend scrapes
 vacancies from ~15 job boards and APIs, normalizes them, scores each listing
-for scam signals, deduplicates and stores results in SQLite. A React dashboard
-lets you browse, filter and trigger scraping runs.
+for scam signals, deduplicates and stores results in an in-memory SQLite
+run-repo (per-run, RAM-only — jobs.db keeps just settings/blacklist). A React
+dashboard lets you browse, filter and trigger scraping runs.
 
 ## Features
 
-- **15+ sources** — Djinni, DOU/Work.ua RSS, Robota.ua, OLX, Freelancehunt,
-  LinkedIn, RemoteOK, Remotive, Arbeitnow, Jobicy, Himalayas, Adzuna, Jooble.
+- **18 sources** — Djinni, DOU/Work.ua RSS, Robota.ua, OLX, Freelancehunt,
+  LinkedIn, RemoteOK, Remotive, Arbeitnow, Jobicy, Himalayas, Job Bank (CA),
+  Craigslist, Adzuna, Jooble, USAJOBS.
 - **Anti-scam scoring** — every job gets a 0–100 scam score (`safe` /
   `suspicious` / `scam`) from a rule pipeline (payment demands, messenger-only
   contact, suspicious company/content signals).
@@ -55,7 +60,8 @@ Python dependencies (`requirements.txt`):
 | `pytest`           | test suite                                |
 
 API-key sources are enabled only when their env vars are set (`JOOBLE_API_KEY`,
-`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`). Everything else works keyless.
+`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, `USAJOBS_API_KEY`/`USAJOBS_EMAIL`).
+Everything else works keyless.
 
 ### Frontend (Node)
 
@@ -72,16 +78,26 @@ Node dependencies (installed automatically by `npm install`):
 
 ## Running
 
-You need **two** processes.
+You need **two** processes — or launch both at once:
+
+```bash
+python start.py      # one console, Ctrl+C stops both
+.\start.bat          # or: opens API + frontend in two windows
+```
 
 ### 1. API server — port 8001
 
 ```bash
 # from repo root, venv activated
-uvicorn app.api.server:app --reload --port 8001
+uvicorn app.api.server:app --reload --reload-dir app --reload-delay 1 --port 8001
 ```
 
 > Port **8001** is required — `frontend/vite.config.ts` proxies `/api` there.
+> `--reload-dir app` keeps docs/tests/frontend edits from restarting the API
+> (a restart wipes live results and can orphan the shared Chromium).
+>
+> If `uvicorn` isn't found on Windows (Scripts/ not on PATH), use
+> `python -m uvicorn app.api.server:app --reload --reload-dir app --reload-delay 1 --port 8001`.
 
 ### 2. Frontend dev server — port 5173
 
@@ -124,7 +140,7 @@ scrapper.loc/
 ├── run_scrape.py            # CLI entry point
 ├── requirements.txt         # Python deps
 ├── .env.example             # config template (copy to .env)
-├── jobs.db                  # SQLite database (gitignored, auto-created)
+├── jobs.db                  # SQLite settings/blacklist only — job rows live in :memory: (gitignored, auto-created)
 │
 ├── app/
 │   ├── config.py            # env loading, Config dataclass
@@ -138,8 +154,9 @@ scrapper.loc/
 │   │   ├── http_source.py   # base class for httpx-based scrapers
 │   │   ├── playwright_source.py  # base class for browser-based scrapers
 │   │   ├── rss_source.py    # shared RSS feed parsing (feedparser)
-│   │   ├── djinni.py, workua.py, robota.py, olx.py, linkedin.py, ...
-│   │   └── adzuna.py, jooble.py  # API-key sources
+│   │   ├── djinni.py, workua.py, robota.py, olx.py, linkedin.py,
+│   │   │   jobbank.py, craigslist.py, ...
+│   │   └── adzuna.py, jooble.py, usajobs.py  # API-key sources
 │   │
 │   ├── parsing/
 │   │   └── normalize.py     # raw source payload -> unified Job
@@ -186,7 +203,7 @@ scrapper.loc/
 
 ```
 sources/*  --raw-->  parsing/normalize  --Job-->  filters + scoring
-      -->  services/dedup  -->  storage/sqlite_repo (jobs.db)
+      -->  services/dedup  -->  sqlite_repo(":memory:") — live, per-run
                                           |
                               FastAPI /api/*  <--  React UI
 ```
@@ -195,6 +212,8 @@ sources/*  --raw-->  parsing/normalize  --Job-->  filters + scoring
    met (API keys, playwright availability).
 2. Each source fetches listings; `Normalizer` maps them to the `Job` model.
 3. `FilterPipeline` runs all anti-scam rules → `scam_score`, `scam_level`.
-4. `dedup` drops cross-source duplicates; new rows go to SQLite.
+4. `dedup` drops cross-source duplicates; `relevance.py` ranks each job
+   against the run keywords; new rows go to in-memory SQLite (wiped on
+   each run — direct keyword hits always sort first).
 5. The dashboard queries `/api/jobs` with filters translated by
    `query_builder.py` into SQL.

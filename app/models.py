@@ -48,6 +48,8 @@ class Job:
     external_id: str | None = None
     scam_score: int = 0
     scam_reasons: list[str] = field(default_factory=list)
+    # keyword-match rank set by ScraperService — direct hits sort first
+    relevance: int = 0
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ class ScamRule(Protocol):
 
 class JobRepository(Protocol):
     def save(self, job: Job) -> bool: ...
+    def delete_matching(self, query: str) -> int: ...
     def list_jobs(
         self,
         query: str | None = None,

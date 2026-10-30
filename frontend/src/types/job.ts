@@ -14,6 +14,8 @@ export interface Job {
   external_id: string | null;
   scam_score: number;
   scam_reasons: string[];
+  /** keyword-match rank for the current run; server sorts direct hits first */
+  relevance: number;
 }
 
 export type JobLevel = "" | "junior" | "middle" | "senior";
@@ -63,4 +65,24 @@ export interface ScrapeReport {
   status: string;
   total_new?: number;
   per_source?: Record<string, { fetched: number; new: number; duplicates: number; error: string | null }>;
+}
+
+export interface SettingKey {
+  name: string;
+  label: string;
+  hint: string;
+  /** masked in GET; non-secret values (e.g. adzuna country) come back plain */
+  secret: boolean;
+  set: boolean;
+  /** "db" = saved via admin panel; "env" = fallback from .env */
+  origin: string;
+  /** stored value — prefilled into the input (admin-only endpoint) */
+  value: string | null;
+  masked: string | null;
+}
+
+export interface AppSettings {
+  keys: SettingKey[];
+  /** key-gated sources and whether their credentials are complete */
+  sources: Record<string, boolean>;
 }

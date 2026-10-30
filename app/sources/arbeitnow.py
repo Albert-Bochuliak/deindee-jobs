@@ -6,6 +6,7 @@ from typing import Iterable
 
 from app.models import RawJob, SearchQuery
 from app.sources.http_source import HttpFetcher
+from app.storage.query_builder import matches_keywords
 
 API_URL = "https://www.arbeitnow.com/api/job-board-api"
 
@@ -30,7 +31,7 @@ class ArbeitnowSource:
                     " ".join(item.get("tags") or []),
                 ]
             ).lower()
-            if keywords and keywords not in haystack:
+            if not matches_keywords(haystack, keywords):
                 continue
             remote = bool(item.get("remote"))
             if query.remote_only and not remote:

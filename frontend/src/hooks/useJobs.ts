@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJobs, fetchLocations, fetchSources, fetchStats } from "../api/client";
 import type { Job, JobFilters, Stats } from "../types/job";
 import { useDebounce } from "./useDebounce";
@@ -76,32 +76,59 @@ export function useJobs(initialCountries?: string[]) {
   const [cols, setCols] = useState(loadCols);
   const debouncedFilters = useDebounce(filters);
 
-  const reload = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!opts?.silent) setLoading(true);
-    setError(null);
-    try {
-      const [jobsData, statsData] = await Promise.all([
-        fetchJobs(debouncedFilters, FETCH_ALL),
-        fetchStats(debouncedFilters),
-      ]);
-      setJobs(jobsData);
-      setStats(statsData);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "API недоступне — запустіть uvicorn на :8001");
-    } finally {
-      if (!opts?.silent) setLoading(false);
-    }
-  }, [debouncedFilters]);
+  // latest debounced filters via ref — keeps `reload` STABLE so callers
+  // (the scrape poll loop) always read fresh filters, not a stale closure
+  const filtersRef = useRef(debouncedFilters);
+  filtersRef.current = debouncedFilters;
+
+  const reload = useCallback(
+    async (opts?: { silent?: boolean; append?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      setError(null);
+      try {
+        const [jobsData, statsData] = await Promise.all([
+          fetchJobs(filtersRef.current, FETCH_ALL),
+          fetchStats(filtersRef.current),
+        ]);
+        setJobs((prev) => {
+          // scrape poll passes append — card positions stay put, new
+          // arrivals go to the END of the queue. Replacing the array with
+          // a freshly relevance-sorted list every 1.5s made the grid jump.
+          if (!opts?.append || !prev.length) return jobsData;
+          const seen = new Set(prev.map((j) => j.id));
+          const fresh = jobsData.filter((j) => !seen.has(j.id));
+          return fresh.length ? [...prev, ...fresh] : prev;
+        });
+        setStats(statsData);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "API недоступне — запустіть uvicorn на :8001");
+      } finally {
+        if (!opts?.silent) setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     reload();
-  }, [reload]);
+  }, [reload, debouncedFilters]);
+
+  // wipe the visible list + stale keyword filter — new scrape runs start
+  // from an empty board (the live repo already IS this run's results)
+  const clear = useCallback(() => {
+    setJobs([]);
+    setStats(null);
+    setPage(1);
+    setFilters((f) => (f.q ? { ...f, q: "" } : f));
+  }, []);
 
   useEffect(() => {
     storageWrite(FILTERS_KEY, JSON.stringify(filters));
   }, [filters]);
 
-  useEffect(() => {
+  // sources + locations live outside filters — refetched on demand
+  // (e.g. after credentials change enables a new source)
+  const refreshMeta = useCallback(() => {
     fetchSources()
       .then((s) =>
         setSources([...new Set([...s.configured, ...s.with_data])].sort())
@@ -117,6 +144,10 @@ export function useJobs(initialCountries?: string[]) {
         setCountries([]);
       });
   }, []);
+
+  useEffect(() => {
+    refreshMeta();
+  }, [refreshMeta]);
 
   // any filter change -> back to page 1
   useEffect(() => {
@@ -151,7 +182,7 @@ export function useJobs(initialCountries?: string[]) {
     // request state
     loading, error,
     // filters + refresh
-    filters, setFilters, reload,
+    filters, setFilters, reload, refreshMeta, clear,
     // pagination (derived values + setters)
     pagedJobs, safePage, setPage,
     effectivePerPage, totalPages, setPerPage,

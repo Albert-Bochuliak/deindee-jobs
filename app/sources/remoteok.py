@@ -5,6 +5,7 @@ from typing import Iterable
 
 from app.models import RawJob, SearchQuery
 from app.sources.http_source import HttpFetcher
+from app.storage.query_builder import matches_keywords
 
 API_URL = "https://remoteok.com/api"
 
@@ -28,7 +29,7 @@ class RemoteOkSource:
             haystack = " ".join(
                 [title, item.get("description") or "", " ".join(item.get("tags") or [])]
             ).lower()
-            if keywords and keywords not in haystack:
+            if not matches_keywords(haystack, keywords):
                 continue
             jobs.append(
                 RawJob(

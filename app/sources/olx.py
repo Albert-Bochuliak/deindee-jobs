@@ -37,6 +37,7 @@ DATE_RE = re.compile(
 
 class OlxSource:
     name = "olx"
+    uses_browser = True  # Playwright — pinned to the single-thread executor
 
     def __init__(self, fetcher: PlaywrightFetcher) -> None:
         self._fetcher = fetcher

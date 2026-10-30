@@ -12,6 +12,7 @@ from typing import Iterable
 
 from app.models import RawJob, SearchQuery
 from app.sources.http_source import HttpFetcher
+from app.storage.query_builder import matches_keywords
 
 API_URL = "https://jobicy.com/api/v2/remote-jobs"
 
@@ -70,9 +71,7 @@ class JobicySource:
                 [title, excerpt, " ".join(item.get("jobIndustry") or []),
                  item.get("companyName") or ""]
             ).lower()
-            if not tag and keywords and not all(
-                k in haystack for k in keywords.split()
-            ):
+            if not tag and not matches_keywords(haystack, keywords):
                 continue
             # locations without a geo slug (Canada, cities…) match jobGeo text
             if loc and not geo_slug and loc not in geo.lower():

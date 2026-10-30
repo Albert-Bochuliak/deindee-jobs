@@ -5,6 +5,19 @@ import os
 from dataclasses import dataclass
 
 
+# Credentials editable via /api/settings — stored in the `settings` DB table
+# (DB wins over .env fallback). field -> Config attribute the key maps to.
+# secret=True -> value masked in GET responses.
+SECRET_KEYS: dict[str, dict] = {
+    "JOOBLE_API_KEY": {"label": "Jooble API key", "hint": "jooble.org/api/about", "secret": True, "field": "jooble_api_key"},
+    "ADZUNA_APP_ID": {"label": "Adzuna App ID", "hint": "developer.adzuna.com", "secret": True, "field": "adzuna_app_id"},
+    "ADZUNA_APP_KEY": {"label": "Adzuna App Key", "hint": "developer.adzuna.com", "secret": True, "field": "adzuna_app_key"},
+    "ADZUNA_COUNTRY": {"label": "Adzuna market", "hint": "us, gb, pl, de...", "secret": False, "field": "adzuna_country"},
+    "USAJOBS_API_KEY": {"label": "USAJOBS API key", "hint": "developer.usajobs.gov", "secret": True, "field": "usajobs_api_key"},
+    "USAJOBS_EMAIL": {"label": "USAJOBS email", "hint": "email used in the key request", "secret": True, "field": "usajobs_email"},
+}
+
+
 def _load_dotenv(path: str = ".env") -> None:
     """Minimal .env loader — no external dependency."""
     if not os.path.exists(path):
@@ -30,6 +43,8 @@ class Config:
     adzuna_app_id: str | None
     adzuna_app_key: str | None
     adzuna_country: str
+    usajobs_api_key: str | None
+    usajobs_email: str | None
     djinni_jobs_url: str
     playwright_headless: bool
 
@@ -56,6 +71,8 @@ def load_config(env_path: str = ".env") -> Config:
             "WORKUA_FEED_URL", "https://www.work.ua/jobs-{kw}/?rss=1"
         ),
         adzuna_app_id=os.getenv("ADZUNA_APP_ID") or None,
+        usajobs_api_key=os.getenv("USAJOBS_API_KEY") or None,
+        usajobs_email=os.getenv("USAJOBS_EMAIL") or None,
         adzuna_app_key=os.getenv("ADZUNA_APP_KEY") or None,
         adzuna_country=os.getenv("ADZUNA_COUNTRY", "us"),
         djinni_jobs_url=os.getenv(

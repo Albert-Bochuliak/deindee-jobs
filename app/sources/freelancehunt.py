@@ -9,6 +9,7 @@ from typing import Iterable
 
 from app.models import RawJob, SearchQuery
 from app.sources.http_source import HttpFetcher
+from app.storage.query_builder import matches_keywords
 
 API_URL = "https://api.freelancehunt.com/v2/projects"
 
@@ -27,7 +28,7 @@ class FreelancehuntSource:
         for item in response.json().get("data", []):
             attrs = item.get("attributes", {})
             haystack = self._haystack(attrs).lower()
-            if keywords and keywords not in haystack:
+            if not matches_keywords(haystack, keywords):
                 continue
             jobs.append(
                 RawJob(

@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 
 export interface DropdownOption<T extends string = string> {
   value: T;
-  label: string;
+  label: ReactNode;
 }
 
 interface Props<T extends string = string> {
@@ -18,18 +18,27 @@ interface Props<T extends string = string> {
   icon?: ReactNode;
   /** extra classes on the outer relative wrapper (sizing, e.g. w-44) */
   className?: string;
-  /** scroll the list when it's long */
-  scroll?: boolean;
+  /** lay options in N columns — wide short panel for long option lists */
+  columns?: 1 | 2 | 3;
 }
 
 const BTN =
   "rounded-lg border border-slate-700 bg-slate-800 px-2 pr-2 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-sky-600 inline-flex w-full items-center justify-between gap-2";
 
+// static map — Tailwind can't see template-built classes like `grid-cols-${n}`
+const COL_CLASSES: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+};
+
 /** Button that opens a checkbox list; outside click closes. */
 export function CheckboxDropdown<T extends string = string>({
-  options, selected, onChange, label, icon, className, scroll,
+  options, selected, onChange, label, icon, className, columns,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
+  const cols = columns ?? 1;
+  const multi = cols > 1;
   const toggle = (v: T) =>
     onChange(
       selected.includes(v)
@@ -53,7 +62,11 @@ export function CheckboxDropdown<T extends string = string>({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className={`absolute left-0 top-full z-20 mt-1 w-full space-y-1 rounded-lg border border-slate-700 bg-slate-800 p-2 shadow-xl ${scroll ? "max-h-64 overflow-y-auto" : ""}`}
+            className={`absolute left-0 top-full z-20 mt-1 rounded-lg border border-slate-700 bg-slate-800 p-2 shadow-xl ${
+              multi
+                ? `grid ${COL_CLASSES[cols]} w-max min-w-full gap-0.5`
+                : "w-full space-y-1"
+            } max-h-[60vh] overflow-y-auto`}
           >
             {options.map((o) => {
               const value = typeof o === "string" ? o : o.value;
@@ -61,7 +74,7 @@ export function CheckboxDropdown<T extends string = string>({
               return (
                 <label
                   key={value}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+                  className="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
                 >
                   <input
                     type="checkbox"

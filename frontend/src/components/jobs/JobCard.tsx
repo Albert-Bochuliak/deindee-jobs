@@ -51,7 +51,7 @@ export function JobCard({ job }: { job: Job }) {
     reasons.unshift(MISSING_COMPANY_UA);
   }
   return (
-    <article className="animate-fade-in flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-slate-600">
+    <article className="animate-fade-in flex h-full min-h-[270px] flex-col rounded-xl border border-slate-800 bg-slate-900 p-4 transition hover:border-slate-600">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug text-slate-100">
           <a href={job.url} target="_blank" rel="noreferrer" className="hover:text-sky-400">
@@ -83,11 +83,11 @@ export function JobCard({ job }: { job: Job }) {
 
       <div className="mt-auto pt-4">
       {reasons.length > 0 && (
-        <ul className="mb-2 space-y-1 rounded-lg bg-red-950/30 p-2 text-xs text-red-300">
+        <div className="mb-2 flex flex-wrap gap-1.5">
           {reasons.map((r, i) => (
-            <li key={i}>· {r}</li>
+            <Badge key={i} tone="yellow">{r}</Badge>
           ))}
-        </ul>
+        </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="blue">{job.source}</Badge>

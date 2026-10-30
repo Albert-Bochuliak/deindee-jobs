@@ -25,7 +25,9 @@ export function JobList({ jobs, loading, error, cols = 3 }: Props) {
       </div>
     );
   }
-  if (loading) {
+  // skeletons only when there's nothing to show — on refetch the old grid
+  // stays (dimmed) and new cards fade in, no skeleton flash per filter tick
+  if (loading && jobs.length === 0) {
     return (
       <div className={`grid auto-rows-fr gap-4 ${GRID[cols] ?? GRID[3]}`}>
         {Array.from({ length: 6 }, (_, i) => (
@@ -43,7 +45,11 @@ export function JobList({ jobs, loading, error, cols = 3 }: Props) {
     );
   }
   return (
-    <div className={`grid auto-rows-fr gap-4 ${GRID[cols] ?? GRID[3]}`}>
+    <div
+      className={`grid auto-rows-fr gap-4 transition-opacity duration-200 ${GRID[cols] ?? GRID[3]} ${
+        loading ? "opacity-50" : ""
+      }`}
+    >
       {jobs.map((job) => (
         <JobCard key={job.id} job={job} />
       ))}

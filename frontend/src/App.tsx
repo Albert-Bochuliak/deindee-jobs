@@ -13,7 +13,7 @@ export default function App() {
   // later changes go through the ScrapeBar onLocations action (no sync effect)
   const {
     jobs, sources, countries, stats, loading, error,
-    filters, setFilters, reload,
+    filters, setFilters, reload, clear,
     pagedJobs, safePage, setPage,
     effectivePerPage, setPerPage, cols, setCols,
   } = useJobs(scrape.locations);
@@ -29,11 +29,11 @@ export default function App() {
             <ScrapeBar
               scrape={scrape}
               remoteOnly={filters.remoteOnly}
-              applyQuery={(q) => setFilters((f) => ({ ...f, q }))}
               onLocations={(locs) =>
                 setFilters((f) => ({ ...f, countries: locs }))
               }
               reload={reload}
+              clear={clear}
             />
           </div>
         </div>
@@ -61,9 +61,9 @@ export default function App() {
             })
           }
         />
-        <JobFiltersBar filters={filters} sources={sources} countries={scrape.locations.length ? scrape.locations : countries} onChange={setFilters} />
+        <JobFiltersBar filters={filters} sources={sources} countries={scrape.locations.length ? scrape.locations : countries} sourceCounts={stats?.by_source} onChange={setFilters} />
         <div className="text-sm text-slate-400">
-          {loading ? "Завантаження…" : `Знайдено: ${jobs.length}`}
+          {loading && jobs.length === 0 ? "Завантаження…" : `Знайдено: ${jobs.length}`}
         </div>
         <JobList jobs={pagedJobs} loading={loading} error={error} cols={cols} />
         {!loading && !error && (

@@ -48,6 +48,7 @@ CITY_SLUGS = {
 
 class RobotaUaSource:
     name = "robota"
+    uses_browser = True  # Playwright — pinned to the single-thread executor
 
     def __init__(self, fetcher: PlaywrightFetcher) -> None:
         self._fetcher = fetcher

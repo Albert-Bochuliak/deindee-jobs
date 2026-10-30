@@ -11,6 +11,7 @@ from typing import Iterable
 
 from app.models import RawJob, SearchQuery
 from app.sources.http_source import HttpFetcher
+from app.storage.query_builder import matches_keywords
 
 API_URL = "https://himalayas.app/jobs/api"
 PAGE_LIMIT = 200
@@ -60,7 +61,7 @@ class HimalayasSource:
                  " ".join(item.get("categories") or []),
                  item.get("companyName") or ""]
             ).lower()
-            if keywords and not all(k in haystack for k in keywords.split()):
+            if not matches_keywords(haystack, keywords):
                 continue
             # a job counts when any hint appears in its location restrictions
             restrictions = " ".join(item.get("locationRestrictions") or []).lower()

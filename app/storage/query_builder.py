@@ -6,6 +6,10 @@ they only exist to feed this builder.
 """
 from __future__ import annotations
 
+import re
+
+from app.storage.locations import country_regions
+
 LEVEL_PATTERNS = {
     "junior": ["junior", "джун", "стаж", "trainee", "intern"],
     "middle": ["middle", "мідл"],
@@ -55,6 +59,42 @@ def _any_like(columns: tuple[str, ...], patterns: list[str]) -> tuple[str, list[
     return " OR ".join(parts), params
 
 
+def word_pattern(word: str) -> str:
+    """REGEXP pattern for one keyword.
+
+    Short abbreviations (<=3 chars) get token boundaries — LIKE '%hr%'
+    matched 'hr' inside '$12/hr' and 'per hr' in descriptions. The hr
+    pattern additionally rejects hour-context: '/hr', 'per hr', '5 hr'.
+    Longer words keep substring semantics (bare re.search == LIKE %w%).
+    """
+    esc = re.escape(word)
+    if len(esc) <= 3:
+        if esc == "hr":
+            # "hr" must not mean "per hour" — kill /hr, per hr, 5 hr, 5+ hr
+            return r"(?<![\w/])(?<![\d+] )(?<!per )hr(?!\w)"
+        return rf"(?<!\w){esc}(?!\w)"
+    return esc
+
+
+def matches_keywords(haystack: str, keywords: str) -> bool:
+    """Client-side keyword match for feed-only sources (no server search).
+
+    Comma = OR between terms; spaces inside a term = AND of words — the
+    same semantics as build_where/score_relevance. Old `kw in haystack`
+    substring checks let 'hr' hit 'three', 'through' and '$45/hr'.
+    """
+    terms = [t.strip() for t in keywords.split(",") if t.strip()]
+    if not terms:
+        return True
+    for term in terms:
+        if all(
+            re.search(word_pattern(w), haystack, re.IGNORECASE)
+            for w in term.split()
+        ):
+            return True
+    return False
+
+
 def build_where(
     query: str | None = None,
     source: str | None = None,
@@ -75,26 +115,19 @@ def build_where(
     if query:
         # Comma = OR between terms; spaces inside a term = AND of words.
         # "wordpress, php" -> wordpress OR php; "wordpress php" -> both words.
+        # Each word is a REGEXP token — '%hr%' LIKE matched '$12/hr' junk.
         terms = [t.strip() for t in query.split(",") if t.strip()]
         if terms:
             groups = []
             for term in terms:
-                words = term.split()
-                if len(words) > 1:
-                    sub = []
-                    for w in words:
-                        sub.append(
-                            "(title LIKE ? OR description LIKE ?"
-                            " OR company LIKE ?)"
-                        )
-                        params += [f"%{w}%"] * 3
-                    groups.append("(" + " AND ".join(sub) + ")")
-                else:
-                    groups.append(
-                        "(title LIKE ? OR description LIKE ?"
-                        " OR company LIKE ?)"
+                sub = []
+                for w in term.split():
+                    sub.append(
+                        "(title REGEXP ? OR description REGEXP ?"
+                        " OR company REGEXP ?)"
                     )
-                    params += [f"%{term}%"] * 3
+                    params += [word_pattern(w)] * 3
+                groups.append("(" + " AND ".join(sub) + ")")
             sql += " AND (" + " OR ".join(groups) + ")"
     if source:
         srcs = [s.strip() for s in source.split(",") if s.strip()]
@@ -146,8 +179,15 @@ def build_where(
                 params += p
             sql += " AND (" + " OR ".join(ors) + ")"
     if countries:
-        cs = [c.strip() for c in countries.split(",") if c.strip()]
-        if cs:
-            sql += " AND (" + " OR ".join("location LIKE ?" for _ in cs) + ")"
-            params += [f"%{c}%" for c in cs]
+        pats: list[str] = []
+        for c in countries.split(","):
+            c = c.strip()
+            if not c:
+                continue
+            pats.append(f"%{c}%")  # literal country substring
+            # city-level locations end with a state/province — match", Virginia"
+            pats += [f"%, {r}" for r in country_regions(c)]
+        if pats:
+            sql += " AND (" + " OR ".join("location LIKE ?" for _ in pats) + ")"
+            params += pats
     return sql, params

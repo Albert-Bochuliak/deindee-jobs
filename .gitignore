@@ -23,6 +23,8 @@ frontend/dist/
 
 # Debug scripts
 _dbg_*.py
+_tmp_*.py
+err.txt
 
 # OS / IDE
 .DS_Store
